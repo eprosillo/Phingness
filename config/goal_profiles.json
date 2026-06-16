@@ -1,0 +1,38 @@
+{
+  "weight_loss": {
+    "label": "Weight Loss",
+    "readiness_thresholds": { "high": 80, "moderate": 60 },
+    "hrv_trend_window_days": 7,
+    "rhr_alert_increase": 3,
+    "sleep_target_hours": 7.5,
+    "step_targets": { "high": 10000, "moderate": 8000, "low": 6000 },
+    "priorities": ["sleep_consistency", "training_load_management", "recovery"]
+  },
+  "endurance": {
+    "label": "Endurance",
+    "readiness_thresholds": { "high": 75, "moderate": 55 },
+    "hrv_trend_window_days": 10,
+    "rhr_alert_increase": 4,
+    "sleep_target_hours": 8,
+    "step_targets": { "high": 8000, "moderate": 6000, "low": 4000 },
+    "priorities": ["volume_progression", "recovery", "consistency"]
+  },
+  "performance": {
+    "label": "Performance",
+    "readiness_thresholds": { "high": 85, "moderate": 65 },
+    "hrv_trend_window_days": 7,
+    "rhr_alert_increase": 3,
+    "sleep_target_hours": 8,
+    "step_targets": { "high": 7000, "moderate": 5000, "low": 3000 },
+    "priorities": ["peak_readiness", "intensity_management", "recovery"]
+  },
+  "recovery": {
+    "label": "Recovery",
+    "readiness_thresholds": { "high": 70, "moderate": 50 },
+    "hrv_trend_window_days": 5,
+    "rhr_alert_increase": 5,
+    "sleep_target_hours": 8.5,
+    "step_targets": { "high": 5000, "moderate": 5000, "low": 5000 },
+    "priorities": ["stress_management", "sleep_consistency", "consistency"]
+  }
+}

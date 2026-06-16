@@ -1,0 +1,6 @@
+.env
+oura_data.db
+__pycache__/
+*.pyc
+.streamlit/
+.claude/settings.local.json

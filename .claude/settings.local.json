@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python report.py)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(json.dumps\\({k:v for k,v in r.items\\(\\) if k not in \\('hrv','heart_rate','movement_30_sec','readiness','sleep_phase_5_min','time_in_bed'\\)}, indent=2\\)\\) for r in d['data']]\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(len\\(d['data']\\)\\); print\\(list\\(d['data'][0].keys\\(\\)\\) if d['data'] else 'empty'\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(len\\(d['data']\\)\\); [print\\(r.get\\('day'\\), r.get\\('total_sleep_duration'\\), r.get\\('lowest_heart_rate'\\), r.get\\('average_hrv'\\)\\) for r in d['data']]\")",
+      "Bash(/Users/lalorosillo/Library/Python/3.9/bin/streamlit run *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(sleep 3 && cat /tmp/streamlit.log)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(python3 -m pip --version)",
+      "Bash(python3 -m pip install streamlit)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git rm *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
