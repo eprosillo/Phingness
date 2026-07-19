@@ -49,6 +49,18 @@ with st.sidebar:
         st.markdown(f"- {p.replace('_', ' ').title()}")
 
     st.markdown("---")
+    st.markdown("**Oura Sync**")
+    if st.button("🔄 Sync from Oura", use_container_width=True):
+        with st.spinner("Syncing…"):
+            try:
+                from oura.ingest import sync
+                n = sync(days=60)
+                st.success(f"Synced {n} days.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Sync failed: {e}")
+
+    st.markdown("---")
     st.markdown("**Daily Note**")
     daily_note = st.text_area(
         "Add context for Claude (optional)",
@@ -61,7 +73,7 @@ with st.sidebar:
 rows = fetch_all_metrics()
 
 if not rows:
-    st.warning("No data yet. Run `python report.py` to sync from Oura.")
+    st.info("No data yet — click **🔄 Sync from Oura** in the sidebar to load your data.")
     st.stop()
 
 df = pd.DataFrame(rows)
