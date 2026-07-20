@@ -78,12 +78,14 @@ with st.sidebar:
 
     # Handle OAuth callback code in URL params
     params = st.query_params
-    if "code" in params and "strava_tokens" not in st.session_state:
+    if "code" in params and "strava_tokens" not in st.session_state and "strava_code_used" not in st.session_state:
+        code = params["code"]
+        st.session_state["strava_code_used"] = True
+        st.query_params.clear()
         with st.spinner("Connecting Strava…"):
             try:
-                tokens = exchange_code(params["code"])
+                tokens = exchange_code(code)
                 st.session_state["strava_tokens"] = tokens
-                st.query_params.clear()
                 st.rerun()
             except Exception as e:
                 st.error(f"Strava auth failed: {e}")
