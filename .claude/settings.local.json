@@ -31,7 +31,8 @@
       "Bash(git commit -m 'Fix Strava redirect to Streamlit app URL for auto code handling *)",
       "Bash(curl -X POST https://www.strava.com/oauth/token -d client_id=266346 -d client_secret=92360d4131984d4f78b3fa2899395debfd389169 -d code=test -d grant_type=authorization_code)",
       "Bash(git commit -m 'Fix Strava secrets: read at call time not module load time *)",
-      "Bash(git commit -m 'Fix Strava code re-use: clear params and mark code as used immediately *)"
+      "Bash(git commit -m 'Fix Strava code re-use: clear params and mark code as used immediately *)",
+      "Bash(git commit -m 'Increase planner max_tokens to 2048 to prevent truncated JSON *)"
     ]
   }
 }
