@@ -33,7 +33,10 @@
       "Bash(git commit -m 'Fix Strava secrets: read at call time not module load time *)",
       "Bash(git commit -m 'Fix Strava code re-use: clear params and mark code as used immediately *)",
       "Bash(git commit -m 'Increase planner max_tokens to 2048 to prevent truncated JSON *)",
-      "Bash(git commit -m 'Fix HTML injection in weekly plan: escape Claude descriptions *)"
+      "Bash(git commit -m 'Fix HTML injection in weekly plan: escape Claude descriptions *)",
+      "Bash(claude mcp *)",
+      "Bash(which claude *)",
+      "Bash(git commit -m 'Fix weekly plan rendering: use st.caption for descriptions to avoid HTML injection *)"
     ]
   }
 }
