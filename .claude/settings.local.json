@@ -26,7 +26,8 @@
       "mcp__visualize__read_me",
       "mcp__visualize__show_widget",
       "Bash(python3 -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; print\\(repr\\(os.getenv\\('STRAVA_CLIENT_ID'\\)\\)\\)\")",
-      "Bash(git commit -m 'Fix Strava client_id loading from Streamlit secrets *)"
+      "Bash(git commit -m 'Fix Strava client_id loading from Streamlit secrets *)",
+      "Bash(git commit -m 'Fix Strava redirect_uri to localhost *)"
     ]
   }
 }
