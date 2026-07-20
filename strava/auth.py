@@ -9,23 +9,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+TOKEN_URL = "https://www.strava.com/oauth/token"
+AUTH_URL  = "https://www.strava.com/oauth/authorize"
+SCOPE     = "activity:read_all"
+
+
 def _get(key: str) -> str:
     try:
         import streamlit as st
-        return st.secrets.get(key) or os.getenv(key, "")
+        return str(st.secrets.get(key) or os.getenv(key, ""))
     except Exception:
         return os.getenv(key, "")
 
-CLIENT_ID     = _get("STRAVA_CLIENT_ID")
-CLIENT_SECRET = _get("STRAVA_CLIENT_SECRET")
-TOKEN_URL     = "https://www.strava.com/oauth/token"
-AUTH_URL      = "https://www.strava.com/oauth/authorize"
-SCOPE         = "activity:read_all"
-
 
 def get_auth_url(redirect_uri: str) -> str:
+    client_id = _get("STRAVA_CLIENT_ID")
     return (
-        f"{AUTH_URL}?client_id={CLIENT_ID}"
+        f"{AUTH_URL}?client_id={client_id}"
         f"&redirect_uri={redirect_uri}"
         f"&response_type=code"
         f"&scope={SCOPE}"
@@ -34,10 +34,9 @@ def get_auth_url(redirect_uri: str) -> str:
 
 
 def exchange_code(code: str) -> dict:
-    """Exchange an auth code for tokens. Returns token dict."""
     resp = requests.post(TOKEN_URL, data={
-        "client_id":     CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "client_id":     _get("STRAVA_CLIENT_ID"),
+        "client_secret": _get("STRAVA_CLIENT_SECRET"),
         "code":          code,
         "grant_type":    "authorization_code",
     })
@@ -46,10 +45,9 @@ def exchange_code(code: str) -> dict:
 
 
 def refresh_access_token(refresh_token: str) -> dict:
-    """Refresh an expired access token. Returns updated token dict."""
     resp = requests.post(TOKEN_URL, data={
-        "client_id":     CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "client_id":     _get("STRAVA_CLIENT_ID"),
+        "client_secret": _get("STRAVA_CLIENT_SECRET"),
         "refresh_token": refresh_token,
         "grant_type":    "refresh_token",
     })
@@ -58,11 +56,6 @@ def refresh_access_token(refresh_token: str) -> dict:
 
 
 def get_valid_token(access_token: str, expires_at: int, refresh_token: str) -> tuple[str, dict | None]:
-    """Return a valid access token, refreshing if needed.
-
-    Returns (access_token, new_token_dict_or_None).
-    new_token_dict is non-None only when a refresh happened — caller should persist it.
-    """
     if time.time() < expires_at - 60:
         return access_token, None
     new = refresh_access_token(refresh_token)

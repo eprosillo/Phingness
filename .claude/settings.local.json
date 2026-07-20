@@ -28,7 +28,9 @@
       "Bash(python3 -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; print\\(repr\\(os.getenv\\('STRAVA_CLIENT_ID'\\)\\)\\)\")",
       "Bash(git commit -m 'Fix Strava client_id loading from Streamlit secrets *)",
       "Bash(git commit -m 'Fix Strava redirect_uri to localhost *)",
-      "Bash(git commit -m 'Fix Strava redirect to Streamlit app URL for auto code handling *)"
+      "Bash(git commit -m 'Fix Strava redirect to Streamlit app URL for auto code handling *)",
+      "Bash(curl -X POST https://www.strava.com/oauth/token -d client_id=266346 -d client_secret=92360d4131984d4f78b3fa2899395debfd389169 -d code=test -d grant_type=authorization_code)",
+      "Bash(git commit -m 'Fix Strava secrets: read at call time not module load time *)"
     ]
   }
 }
