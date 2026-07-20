@@ -33,6 +33,8 @@ from training.db import (
     get_race_results, log_race_result, delete_race_result,
 )
 from training.planner import generate_weekly_plan, weeks_until
+from strava.auth import get_auth_url, exchange_code, get_valid_token
+from strava.sync import fetch_and_sync
 
 st.set_page_config(page_title="Oura Tracker", page_icon="💍", layout="wide")
 
@@ -70,6 +72,48 @@ with st.sidebar:
                 st.rerun()
             except Exception as e:
                 st.error(f"Sync failed: {e}")
+
+    st.markdown("---")
+    st.markdown("**Strava**")
+
+    # Handle OAuth callback code in URL params
+    params = st.query_params
+    if "code" in params and "strava_tokens" not in st.session_state:
+        with st.spinner("Connecting Strava…"):
+            try:
+                tokens = exchange_code(params["code"])
+                st.session_state["strava_tokens"] = tokens
+                st.query_params.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Strava auth failed: {e}")
+
+    strava_tokens = st.session_state.get("strava_tokens")
+
+    if strava_tokens:
+        st.success("Strava connected")
+        if st.button("🏃 Sync Strava Workouts", use_container_width=True):
+            with st.spinner("Fetching activities…"):
+                try:
+                    access_token, new_tokens = get_valid_token(
+                        strava_tokens["access_token"],
+                        strava_tokens["expires_at"],
+                        strava_tokens["refresh_token"],
+                    )
+                    if new_tokens:
+                        st.session_state["strava_tokens"] = {**strava_tokens, **new_tokens}
+                    n = fetch_and_sync(access_token, days=60)
+                    st.success(f"Synced {n} new workouts from Strava!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Sync failed: {e}")
+        if st.button("Disconnect Strava", use_container_width=True):
+            del st.session_state["strava_tokens"]
+            st.rerun()
+    else:
+        app_url = "https://eprosillo-phingness.streamlit.app"
+        auth_url = get_auth_url(redirect_uri=app_url)
+        st.markdown(f'<a href="{auth_url}" target="_self"><button style="width:100%;padding:8px;background:#fc4c02;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🔗 Connect Strava</button></a>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("**Daily Note**")

@@ -22,7 +22,9 @@
       "Bash(git branch *)",
       "Bash(git push *)",
       "Bash(which gh *)",
-      "Bash(git commit -m 'Add Sync from Oura button to sidebar for cloud deployment *)"
+      "Bash(git commit -m 'Add Sync from Oura button to sidebar for cloud deployment *)",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget"
     ]
   }
 }
