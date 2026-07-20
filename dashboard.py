@@ -375,23 +375,26 @@ with training_tab:
                 effort_color = lambda e: (
                     "#10b981" if e <= 4 else "#f59e0b" if e <= 6 else "#ef4444"
                 )
+                import html as _html
                 for day in plan_data["days"]:
                     effort = day.get("effort", 5)
                     color = effort_color(effort)
                     dist = f"{day['distance_mi']} mi" if day.get("distance_mi") else ""
+                    desc = _html.escape(day.get("description", ""))
+                    wtype = _html.escape(day.get("workout_type", "").replace("_", " ").title())
                     st.markdown(
                         f"""
                         <div style="background:#1e1e2e;border-radius:10px;padding:14px 18px;margin:6px 0;border-left:4px solid {color}">
                             <div style="display:flex;justify-content:space-between;align-items:center">
                                 <div>
-                                    <span style="font-weight:700;color:#fff">{day['day']}</span>
+                                    <span style="font-weight:700;color:#fff">{_html.escape(day['day'])}</span>
                                     <span style="color:#888;font-size:12px;margin-left:8px">{day.get('date','')}</span>
-                                    <span style="color:#aaa;font-size:13px;margin-left:12px">{day.get('workout_type','').replace('_',' ').title()}</span>
+                                    <span style="color:#aaa;font-size:13px;margin-left:12px">{wtype}</span>
                                     {f'<span style="color:#aaa;font-size:13px;margin-left:8px">· {dist}</span>' if dist else ''}
                                 </div>
                                 <div style="color:{color};font-weight:700">Effort {effort}/10</div>
                             </div>
-                            <div style="color:#ccc;font-size:13px;margin-top:6px">{day.get('description','')}</div>
+                            <div style="color:#ccc;font-size:13px;margin-top:6px">{desc}</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
