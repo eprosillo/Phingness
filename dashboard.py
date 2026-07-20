@@ -112,8 +112,18 @@ with st.sidebar:
             st.rerun()
     else:
         app_url = "https://eprosillo-phingness.streamlit.app"
-        auth_url = get_auth_url(redirect_uri=app_url)
-        st.markdown(f'<a href="{auth_url}" target="_self"><button style="width:100%;padding:8px;background:#fc4c02;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🔗 Connect Strava</button></a>', unsafe_allow_html=True)
+        auth_url = get_auth_url(redirect_uri="https://www.strava.com/oauth/token")
+        st.markdown(f'<a href="{auth_url}" target="_blank"><button style="width:100%;padding:8px;background:#fc4c02;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🔗 Connect Strava</button></a>', unsafe_allow_html=True)
+        st.caption("Opens Strava in a new tab. After authorizing, copy the code from the URL and paste it below.")
+        strava_code = st.text_input("Paste Strava code here", placeholder="code from URL after ?code=")
+        if strava_code:
+            with st.spinner("Connecting…"):
+                try:
+                    tokens = exchange_code(strava_code)
+                    st.session_state["strava_tokens"] = tokens
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Auth failed: {e}")
 
     st.markdown("---")
     st.markdown("**Daily Note**")
