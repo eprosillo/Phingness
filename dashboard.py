@@ -112,7 +112,7 @@ with st.sidebar:
             st.rerun()
     else:
         app_url = "https://eprosillo-phingness.streamlit.app"
-        auth_url = get_auth_url(redirect_uri="http://localhost")
+        auth_url = get_auth_url(redirect_uri="https://eprosillo-phingness.streamlit.app")
         st.markdown(f'<a href="{auth_url}" target="_blank"><button style="width:100%;padding:8px;background:#fc4c02;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">🔗 Connect Strava</button></a>', unsafe_allow_html=True)
         st.caption("Opens Strava in a new tab. After authorizing, copy the code from the URL and paste it below.")
         strava_code = st.text_input("Paste Strava code here", placeholder="code from URL after ?code=")
