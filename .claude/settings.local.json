@@ -24,7 +24,9 @@
       "Bash(which gh *)",
       "Bash(git commit -m 'Add Sync from Oura button to sidebar for cloud deployment *)",
       "mcp__visualize__read_me",
-      "mcp__visualize__show_widget"
+      "mcp__visualize__show_widget",
+      "Bash(python3 -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; print\\(repr\\(os.getenv\\('STRAVA_CLIENT_ID'\\)\\)\\)\")",
+      "Bash(git commit -m 'Fix Strava client_id loading from Streamlit secrets *)"
     ]
   }
 }

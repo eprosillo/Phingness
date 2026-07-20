@@ -9,8 +9,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CLIENT_ID     = os.getenv("STRAVA_CLIENT_ID", "")
-CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET", "")
+def _get(key: str) -> str:
+    try:
+        import streamlit as st
+        return st.secrets.get(key) or os.getenv(key, "")
+    except Exception:
+        return os.getenv(key, "")
+
+CLIENT_ID     = _get("STRAVA_CLIENT_ID")
+CLIENT_SECRET = _get("STRAVA_CLIENT_SECRET")
 TOKEN_URL     = "https://www.strava.com/oauth/token"
 AUTH_URL      = "https://www.strava.com/oauth/authorize"
 SCOPE         = "activity:read_all"
