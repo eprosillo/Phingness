@@ -175,7 +175,7 @@ def score_color(v, hi=85, mid=70):
 
 def metric_tile(label, value, sub="", color="#7c3aed", icon=""):
     return f"""
-    <div style="background:linear-gradient(135deg,#13132a 0%,#1a1a35 100%);
+    <div style="background:linear-gradient(135deg,#1f2937 0%,#273348 100%);
                 border-radius:16px;padding:22px 24px;border:1px solid rgba(255,255,255,0.06);
                 position:relative;overflow:hidden;height:100%">
       <div style="font-size:10px;color:#64748b;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">{label}</div>
@@ -261,7 +261,7 @@ with main_tab:
             emoji = SIGNAL_EMOJI.get(signal, "⚪")
             st.markdown(
                 f"""
-                <div style="background:#1e1e2e;border-radius:12px;padding:20px 24px;margin:8px 0">
+                <div style="background:#1f2937;border-radius:12px;padding:20px 24px;margin:8px 0">
                     <div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:.08em">TODAY'S TRAINING SIGNAL</div>
                     <div style="font-size:24px;font-weight:700;color:{color};margin-bottom:10px">{emoji} {signal}</div>
                     <div style="font-size:14px;color:#ccc;line-height:1.6">{brief_state['narrative']}</div>
@@ -274,7 +274,7 @@ with main_tab:
             rec_color = rec_color_map.get(rec, "⚪")
             st.markdown(
                 f"""
-                <div style="background:#1e1e2e;border-radius:12px;padding:20px 24px;margin:8px 0">
+                <div style="background:#1f2937;border-radius:12px;padding:20px 24px;margin:8px 0">
                     <div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:.08em">TODAY'S TRAINING (rule-based)</div>
                     <div style="font-size:22px;font-weight:700;margin-bottom:8px">{rec_color} {rec}</div>
                     <div style="font-size:13px;color:#888">Press "Generate AI Brief" for a personalized narrative from Claude.</div>
@@ -293,12 +293,12 @@ with main_tab:
         bar_w = int(step_progress * 100)
         st.markdown(
             f"""
-            <div style="background:linear-gradient(135deg,#13132a 0%,#1a1a35 100%);
+            <div style="background:linear-gradient(135deg,#1f2937 0%,#273348 100%);
                         border-radius:16px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06)">
                 <div style="font-size:10px;color:#64748b;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">STEPS TODAY</div>
                 <div style="font-size:28px;font-weight:800;color:{step_clr};line-height:1">{step_actual_str}</div>
                 <div style="font-size:12px;color:#64748b;margin:6px 0 12px">of {step_rec['target']:,} target · {step_pct}%</div>
-                <div style="background:#1e1e3a;border-radius:6px;height:6px;overflow:hidden">
+                <div style="background:#273348;border-radius:6px;height:6px;overflow:hidden">
                   <div style="background:{step_clr};width:{bar_w}%;height:100%;border-radius:6px;transition:width .3s"></div>
                 </div>
                 <div style="font-size:11px;color:#64748b;margin-top:8px">{step_rec['feedback']}</div>
@@ -313,7 +313,7 @@ with main_tab:
 
     _CHART_LAYOUT = dict(
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#0f0f1e",
+        plot_bgcolor="#1a2236",
         font=dict(color="#94a3b8", size=11),
         margin=dict(t=16, b=0, l=0, r=0),
         height=300,
@@ -326,6 +326,10 @@ with main_tab:
 
     scores_tab, sleep_tab, heart_tab = st.tabs(["Scores", "Sleep", "Heart"])
 
+    def hex_to_rgba(h, a):
+        r, g, b = int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
+        return f"rgba({r},{g},{b},{a})"
+
     with scores_tab:
         fig = go.Figure()
         for col, color, name in [
@@ -336,7 +340,7 @@ with main_tab:
             fig.add_trace(go.Scatter(
                 x=df60["date"], y=df60[col], name=name,
                 line=dict(color=color, width=2), connectgaps=True,
-                fill="tozeroy", fillcolor=color.replace("#", "rgba(") + ",0.06)".replace("rgba(", f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},"),
+                fill="tozeroy", fillcolor=hex_to_rgba(color, 0.08),
             ))
         fig.update_layout(**_CHART_LAYOUT, yaxis=dict(**_CHART_LAYOUT["yaxis"], range=[0, 100]))
         st.plotly_chart(fig, use_container_width=True)
@@ -373,7 +377,7 @@ with main_tab:
             fig.add_trace(go.Scatter(
                 x=df60["date"], y=df60["hrv_balance"], name="HRV Balance",
                 line=dict(color="#7c3aed", width=2), connectgaps=True,
-                fill="tozeroy", fillcolor="rgba(124,58,237,0.08)",
+                fill="tozeroy", fillcolor=hex_to_rgba("#7c3aed", 0.12),
             ))
             fig.update_layout(**_CHART_LAYOUT, title=dict(text="HRV Balance", font=dict(size=12, color="#94a3b8"), x=0))
             st.plotly_chart(fig, use_container_width=True)
@@ -382,7 +386,7 @@ with main_tab:
             fig.add_trace(go.Scatter(
                 x=df60["date"], y=df60["resting_heart_rate"], name="Resting HR",
                 line=dict(color="#ef4444", width=2), connectgaps=True,
-                fill="tozeroy", fillcolor="rgba(239,68,68,0.08)",
+                fill="tozeroy", fillcolor=hex_to_rgba("#ef4444", 0.12),
             ))
             fig.update_layout(**_CHART_LAYOUT, title=dict(text="Resting Heart Rate (bpm)", font=dict(size=12, color="#94a3b8"), x=0))
             st.plotly_chart(fig, use_container_width=True)
@@ -405,7 +409,7 @@ with main_tab:
         st.markdown(metric_tile("Sleep vs Target", debt_str, "cumulative", debt_color), unsafe_allow_html=True)
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     st.markdown(
-        f"<div style='background:#13132a;border-radius:12px;padding:16px 20px;border-left:3px solid #7c3aed;font-size:13px;color:#94a3b8;line-height:1.6'>{summary['narrative']}</div>",
+        f"<div style='background:#1f2937;border-radius:12px;padding:16px 20px;border-left:3px solid #7c3aed;font-size:13px;color:#94a3b8;line-height:1.6'>{summary['narrative']}</div>",
         unsafe_allow_html=True,
     )
 
@@ -516,7 +520,7 @@ with training_tab:
                             f"border-radius:20px;padding:2px 10px;margin-left:8px'>✓ logged</span>"
                         ) if logged else ""
                         st.markdown(f"""
-                        <div style="background:#13132a;border-radius:14px;padding:16px 20px;
+                        <div style="background:#1f2937;border-radius:14px;padding:16px 20px;
                                     margin:6px 0;border-left:4px solid {color};
                                     border:1px solid rgba(255,255,255,0.05);border-left:4px solid {color}">
                           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -533,7 +537,7 @@ with training_tab:
                           <div style="font-size:12px;color:#64748b;margin:8px 0 10px">{desc}</div>
                           <div style="display:flex;align-items:center;gap:12px">
                             {"<span style='font-size:12px;color:#94a3b8'>📏 " + dist + "</span>" if dist else ""}
-                            <div style="flex:1;background:#1e1e3a;border-radius:4px;height:4px">
+                            <div style="flex:1;background:#273348;border-radius:4px;height:4px">
                               <div style="background:{color};width:{bar_pct}%;height:100%;border-radius:4px"></div>
                             </div>
                             <span style="font-size:11px;color:{color};font-weight:600">effort {effort}/10</span>
@@ -750,7 +754,7 @@ with training_tab:
                 pace = f"@ {w['pace_per_mile']}/mi" if w.get("pace_per_mile") else ""
                 st.markdown(
                     f"""
-                    <div style="background:#1e1e2e;border-radius:10px;padding:12px 16px;margin:4px 0;border-left:3px solid {c}">
+                    <div style="background:#1f2937;border-radius:10px;padding:12px 16px;margin:4px 0;border-left:3px solid {c}">
                         <b style="color:#fff">{w['date']}</b>
                         <span style="color:#aaa;margin-left:10px">{w['type']}</span>
                         <span style="color:#ccc;margin-left:10px">{dist} {pace}</span>
@@ -799,7 +803,7 @@ with training_tab:
             for r in results:
                 st.markdown(
                     f"""
-                    <div style="background:#1e1e2e;border-radius:10px;padding:14px 18px;margin:6px 0;border-left:4px solid #7c3aed">
+                    <div style="background:#1f2937;border-radius:10px;padding:14px 18px;margin:6px 0;border-left:4px solid #7c3aed">
                         <b style="color:#fff;font-size:15px">{r['race_name']}</b>
                         <span style="color:#888;font-size:12px;margin-left:10px">{r['date']}</span>
                         <div style="margin-top:6px">
@@ -848,7 +852,7 @@ with training_tab:
                 weeks = weeks_until(r["date"])
                 st.markdown(
                     f"""
-                    <div style="background:#1e1e2e;border-radius:10px;padding:14px 18px;margin:6px 0">
+                    <div style="background:#1f2937;border-radius:10px;padding:14px 18px;margin:6px 0">
                         <b style="color:#fff">{r['name']}</b>
                         <span style="color:#888;margin-left:10px">{r['date']}</span>
                         <span style="color:#7c3aed;margin-left:10px">{r['distance_mi']} mi</span>
