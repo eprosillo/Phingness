@@ -29,7 +29,7 @@ from training.db import (
     init_training_db,
     get_races, upsert_race, delete_race,
     get_workouts, log_workout, delete_workout, update_workout,
-    get_strava_workouts,
+    get_strava_workouts, get_setting, set_setting,
     get_training_plan, save_training_plan,
     get_race_results, log_race_result, delete_race_result,
 )

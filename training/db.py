@@ -18,6 +18,12 @@ def _connect() -> sqlite3.Connection:
 def init_training_db():
     with _connect() as conn:
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS races (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 name        TEXT NOT NULL,
@@ -223,3 +229,20 @@ def get_race_results() -> list[dict]:
 def delete_race_result(result_id: int):
     with _connect() as conn:
         conn.execute("DELETE FROM race_results WHERE id=?", (result_id,))
+
+
+# ── App settings ───────────────────────────────────────────────────────────────
+
+def get_setting(key: str, default: str = None) -> str | None:
+    with _connect() as conn:
+        row = conn.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
+    return row["value"] if row else default
+
+
+def set_setting(key: str, value: str):
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO app_settings (key, value) VALUES (?,?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
