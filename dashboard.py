@@ -376,18 +376,32 @@ with training_tab:
                 effort_color = lambda e: (
                     "#10b981" if e <= 4 else "#f59e0b" if e <= 6 else "#ef4444"
                 )
+
+                # Build lookup: date -> logged workout
+                logged_by_date = {w["date"]: w for w in workouts}
+                # Build lookup: date -> strava activities (multiple per day possible)
+                strava_by_date: dict[str, list[dict]] = {}
+                for a in get_strava_workouts(days=60):
+                    strava_by_date.setdefault(a["date"], []).append(a)
+
+                WORKOUT_TYPES = ["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"]
+
                 for day in plan_data["days"]:
                     effort = day.get("effort", 5)
                     color = effort_color(effort)
                     dist = f"{day['distance_mi']} mi" if day.get("distance_mi") else ""
                     wtype = day.get("workout_type", "").replace("_", " ").title()
                     desc = day.get("description", "")
+                    day_date = day.get("date", "")
+                    logged = logged_by_date.get(day_date)
+
                     with st.container():
                         col_a, col_b = st.columns([5, 1])
                         with col_a:
+                            done_badge = " ✅" if logged else ""
                             st.markdown(
-                                f"**{day['day']}** &nbsp; "
-                                f"<span style='color:#888;font-size:12px'>{day.get('date','')}</span> &nbsp; "
+                                f"**{day['day']}{done_badge}** &nbsp; "
+                                f"<span style='color:#888;font-size:12px'>{day_date}</span> &nbsp; "
                                 f"<span style='color:#aaa'>{wtype}</span>"
                                 + (f" &nbsp; · &nbsp; <span style='color:#aaa'>{dist}</span>" if dist else ""),
                                 unsafe_allow_html=True,
@@ -395,6 +409,101 @@ with training_tab:
                         with col_b:
                             st.markdown(f"<div style='color:{color};font-weight:700;text-align:right'>Effort {effort}/10</div>", unsafe_allow_html=True)
                         st.caption(desc)
+
+                        if logged:
+                            lc1, lc2 = st.columns([6, 1])
+                            with lc1:
+                                ldist = f"{logged['distance_mi']} mi" if logged.get('distance_mi') else ""
+                                lpace = f"@ {logged['pace_per_mile']}/mi" if logged.get('pace_per_mile') else ""
+                                st.caption(f"Logged: {logged['type']} {ldist} {lpace} · effort {logged.get('effort','—')}/10")
+                            with lc2:
+                                if st.button("✏️", key=f"edit_logged_{day_date}", help="Edit logged workout"):
+                                    st.session_state[f"edit_open_{day_date}"] = True
+
+                        expander_label = "Edit actual workout" if logged else "Log actual workout"
+                        if logged and not st.session_state.get(f"edit_open_{day_date}"):
+                            pass
+                        else:
+                            with st.expander(expander_label, expanded=not logged):
+                                entry_mode = st.radio(
+                                    "Source",
+                                    ["✏️ Manual", "🔗 Link from Strava"],
+                                    horizontal=True,
+                                    key=f"mode_{day_date}",
+                                    label_visibility="collapsed",
+                                )
+
+                                if entry_mode == "🔗 Link from Strava":
+                                    day_strava = strava_by_date.get(day_date, [])
+                                    if not day_strava:
+                                        st.info(f"No Strava activity found on {day_date}. Sync Strava or use manual entry.")
+                                    else:
+                                        def _act_label(a):
+                                            d = f"{a['distance_mi']} mi" if a.get('distance_mi') else ""
+                                            p = f"@ {a['pace_per_mile']}/mi" if a.get('pace_per_mile') else ""
+                                            n = (a.get('notes') or '')[:40]
+                                            return " ".join(x for x in [a['type'], d, p, n] if x)
+
+                                        act_options = {_act_label(a): a for a in day_strava}
+                                        sel_label = st.selectbox("Activity", list(act_options.keys()), key=f"strava_sel_{day_date}")
+                                        sel_act = act_options[sel_label]
+
+                                        with st.form(f"link_strava_{day_date}"):
+                                            sc1, sc2 = st.columns(2)
+                                            with sc1:
+                                                s_type = st.selectbox("Type", WORKOUT_TYPES,
+                                                    index=WORKOUT_TYPES.index(sel_act["type"]) if sel_act["type"] in WORKOUT_TYPES else 0,
+                                                    key=f"s_type_{day_date}")
+                                                s_dist = st.number_input("Distance (mi)", min_value=0.0, step=0.1, format="%.1f",
+                                                    value=float(sel_act.get("distance_mi") or 0.0), key=f"s_dist_{day_date}")
+                                            with sc2:
+                                                s_dur = st.number_input("Duration (min)", min_value=0, step=1,
+                                                    value=int(sel_act.get("duration_min") or 0), key=f"s_dur_{day_date}")
+                                                s_pace = st.text_input("Pace/mi", value=sel_act.get("pace_per_mile") or "", key=f"s_pace_{day_date}")
+                                                s_effort = st.slider("Effort (1-10)", 1, 10,
+                                                    value=int(sel_act.get("effort") or 5), key=f"s_eff_{day_date}")
+                                            s_notes = st.text_area("Notes", value=sel_act.get("notes") or "", key=f"s_notes_{day_date}")
+                                            if st.form_submit_button("💾 Save", use_container_width=True):
+                                                update_workout(sel_act["id"], s_type, s_dist or None, s_dur or None, s_pace or None, s_effort, s_notes or None)
+                                                st.session_state.pop(f"edit_open_{day_date}", None)
+                                                st.success("Saved!")
+                                                st.rerun()
+
+                                else:
+                                    with st.form(f"manual_log_{day_date}"):
+                                        mc1, mc2 = st.columns(2)
+                                        planned_type = day.get("workout_type", "easy run")
+                                        default_type = planned_type if planned_type in WORKOUT_TYPES else "easy run"
+                                        with mc1:
+                                            m_type = st.selectbox("Type", WORKOUT_TYPES,
+                                                index=WORKOUT_TYPES.index(logged["type"] if logged and logged["type"] in WORKOUT_TYPES else default_type),
+                                                key=f"m_type_{day_date}")
+                                            m_dist = st.number_input("Distance (mi)", min_value=0.0, step=0.1, format="%.1f",
+                                                value=float(logged["distance_mi"] if logged and logged.get("distance_mi") else day.get("distance_mi") or 0.0),
+                                                key=f"m_dist_{day_date}")
+                                        with mc2:
+                                            m_dur = st.number_input("Duration (min)", min_value=0, step=1,
+                                                value=int(logged["duration_min"] if logged and logged.get("duration_min") else 0),
+                                                key=f"m_dur_{day_date}")
+                                            m_pace = st.text_input("Pace/mi",
+                                                value=logged.get("pace_per_mile", "") if logged else "",
+                                                key=f"m_pace_{day_date}")
+                                            m_effort = st.slider("Effort (1-10)", 1, 10,
+                                                value=int(logged["effort"] if logged and logged.get("effort") else effort),
+                                                key=f"m_eff_{day_date}")
+                                        m_notes = st.text_area("Notes",
+                                            value=logged.get("notes", "") if logged else "",
+                                            placeholder="How did it feel?",
+                                            key=f"m_notes_{day_date}")
+                                        if st.form_submit_button("💾 Save", use_container_width=True):
+                                            if logged:
+                                                update_workout(logged["id"], m_type, m_dist or None, m_dur or None, m_pace or None, m_effort, m_notes or None)
+                                            else:
+                                                log_workout(day_date, m_type, m_dist or None, m_dur or None, m_pace or None, m_effort, m_notes or None)
+                                            st.session_state.pop(f"edit_open_{day_date}", None)
+                                            st.success("Saved!")
+                                            st.rerun()
+
                         st.divider()
 
     # ── Log Workout ────────────────────────────────────────────────────────────
