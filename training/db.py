@@ -136,6 +136,34 @@ def get_workouts(days: int = 60) -> list[dict]:
     return [dict(r) for r in reversed(rows)]
 
 
+def get_strava_workouts(days: int = 60) -> list[dict]:
+    with _connect() as conn:
+        rows = conn.execute("""
+            SELECT * FROM workout_logs
+            WHERE source = 'strava'
+            ORDER BY date DESC
+            LIMIT ?
+        """, (days,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_workout(
+    workout_id: int,
+    workout_type: str,
+    distance_mi: float = None,
+    duration_min: float = None,
+    pace_per_mile: str = None,
+    effort: int = None,
+    notes: str = None,
+):
+    with _connect() as conn:
+        conn.execute("""
+            UPDATE workout_logs
+            SET type=?, distance_mi=?, duration_min=?, pace_per_mile=?, effort=?, notes=?
+            WHERE id=?
+        """, (workout_type, distance_mi, duration_min, pace_per_mile, effort, notes, workout_id))
+
+
 def delete_workout(workout_id: int):
     with _connect() as conn:
         conn.execute("DELETE FROM workout_logs WHERE id=?", (workout_id,))

@@ -28,7 +28,8 @@ from ai.brief import generate_brief
 from training.db import (
     init_training_db,
     get_races, upsert_race, delete_race,
-    get_workouts, log_workout, delete_workout,
+    get_workouts, log_workout, delete_workout, update_workout,
+    get_strava_workouts,
     get_training_plan, save_training_plan,
     get_race_results, log_race_result, delete_race_result,
 )
@@ -399,30 +400,102 @@ with training_tab:
     # ── Log Workout ────────────────────────────────────────────────────────────
     with trainer_tab2:
         st.subheader("Log a Workout")
-        with st.form("log_workout_form"):
-            lw_col1, lw_col2 = st.columns(2)
-            with lw_col1:
-                lw_date = st.date_input("Date", value=date.today())
-                lw_type = st.selectbox("Type", ["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"])
-                lw_distance = st.number_input("Distance (miles)", min_value=0.0, step=0.1, format="%.1f")
-            with lw_col2:
-                lw_duration = st.number_input("Duration (minutes)", min_value=0, step=1)
-                lw_pace = st.text_input("Pace per mile (e.g. 8:30)")
-                lw_effort = st.slider("Effort (1-10)", 1, 10, 5)
-            lw_notes = st.text_area("Notes", placeholder="How did it feel?")
-            submitted = st.form_submit_button("💾 Save Workout", use_container_width=True)
-            if submitted:
-                log_workout(
-                    date=str(lw_date),
-                    workout_type=lw_type,
-                    distance_mi=lw_distance or None,
-                    duration_min=lw_duration or None,
-                    pace_per_mile=lw_pace or None,
-                    effort=lw_effort,
-                    notes=lw_notes or None,
-                )
-                st.success("Workout logged!")
-                st.rerun()
+
+        log_mode = st.radio(
+            "Entry mode",
+            ["✏️ Manual entry", "🔗 Link from Strava"],
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+
+        if log_mode == "🔗 Link from Strava":
+            strava_activities = get_strava_workouts(days=60)
+            if not strava_activities:
+                st.info("No Strava workouts synced yet. Use the Strava sync in the sidebar to import your activities.")
+            else:
+                def _activity_label(a):
+                    dist = f"{a['distance_mi']} mi" if a.get('distance_mi') else ""
+                    pace = f"@ {a['pace_per_mile']}/mi" if a.get('pace_per_mile') else ""
+                    note = (a.get('notes') or '')[:40]
+                    parts = [p for p in [a['date'], "—", a['type'], dist, pace, f"({note})" if note else ""] if p]
+                    return " ".join(parts)
+
+                activity_labels = {_activity_label(a): a for a in strava_activities}
+                selected_label = st.selectbox("Pick a Strava activity", list(activity_labels.keys()))
+                selected_activity = activity_labels[selected_label]
+
+                st.markdown("**Edit before saving** *(fields pre-filled from Strava)*")
+                with st.form("link_strava_form"):
+                    ls_col1, ls_col2 = st.columns(2)
+                    with ls_col1:
+                        ls_type = st.selectbox(
+                            "Type",
+                            ["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"],
+                            index=["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"].index(
+                                selected_activity["type"] if selected_activity["type"] in
+                                ["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"]
+                                else "easy run"
+                            ),
+                        )
+                        ls_distance = st.number_input(
+                            "Distance (miles)",
+                            min_value=0.0, step=0.1, format="%.1f",
+                            value=float(selected_activity.get("distance_mi") or 0.0),
+                        )
+                    with ls_col2:
+                        ls_duration = st.number_input(
+                            "Duration (minutes)",
+                            min_value=0, step=1,
+                            value=int(selected_activity.get("duration_min") or 0),
+                        )
+                        ls_pace = st.text_input(
+                            "Pace per mile",
+                            value=selected_activity.get("pace_per_mile") or "",
+                        )
+                        ls_effort = st.slider(
+                            "Effort (1-10)", 1, 10,
+                            value=int(selected_activity.get("effort") or 5),
+                        )
+                    ls_notes = st.text_area("Notes", value=selected_activity.get("notes") or "")
+                    ls_submitted = st.form_submit_button("💾 Save Linked Workout", use_container_width=True)
+                    if ls_submitted:
+                        update_workout(
+                            workout_id=selected_activity["id"],
+                            workout_type=ls_type,
+                            distance_mi=ls_distance or None,
+                            duration_min=ls_duration or None,
+                            pace_per_mile=ls_pace or None,
+                            effort=ls_effort,
+                            notes=ls_notes or None,
+                        )
+                        st.success("Strava workout updated and saved!")
+                        st.rerun()
+
+        else:
+            with st.form("log_workout_form"):
+                lw_col1, lw_col2 = st.columns(2)
+                with lw_col1:
+                    lw_date = st.date_input("Date", value=date.today())
+                    lw_type = st.selectbox("Type", ["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"])
+                    lw_distance = st.number_input("Distance (miles)", min_value=0.0, step=0.1, format="%.1f")
+                with lw_col2:
+                    lw_duration = st.number_input("Duration (minutes)", min_value=0, step=1)
+                    lw_pace = st.text_input("Pace per mile (e.g. 8:30)")
+                    lw_effort = st.slider("Effort (1-10)", 1, 10, 5)
+                lw_notes = st.text_area("Notes", placeholder="How did it feel?")
+                submitted = st.form_submit_button("💾 Save Workout", use_container_width=True)
+                if submitted:
+                    log_workout(
+                        date=str(lw_date),
+                        workout_type=lw_type,
+                        distance_mi=lw_distance or None,
+                        duration_min=lw_duration or None,
+                        pace_per_mile=lw_pace or None,
+                        effort=lw_effort,
+                        notes=lw_notes or None,
+                    )
+                    st.success("Workout logged!")
+                    st.rerun()
 
         if workouts:
             st.markdown("---")
