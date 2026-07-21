@@ -37,7 +37,7 @@ from training.planner import generate_weekly_plan, weeks_until
 from strava.auth import get_auth_url, exchange_code, get_valid_token
 from strava.sync import fetch_and_sync
 
-st.set_page_config(page_title="Oura Tracker", page_icon="💍", layout="wide")
+st.set_page_config(page_title="Phingness", page_icon="💪", layout="wide")
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 init_db()
@@ -158,7 +158,7 @@ step_rec = step_recommendation(today.get("readiness_score"), trend, debt, profil
 summary = weekly_summary(rows_all, profile)
 
 # ── Header & metric cards ─────────────────────────────────────────────────────
-st.title("💍 Oura Data & Goals Tracker")
+st.title("💪 Phingness")
 st.caption(f"Goal: **{profile.get('label', goal_name)}** · {today['date']}")
 
 main_tab, training_tab = st.tabs(["📊 Daily Overview", "🏃 Race Trainer"])
