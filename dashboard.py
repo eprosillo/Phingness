@@ -37,16 +37,7 @@ from training.planner import generate_weekly_plan, weeks_until
 from strava.auth import get_auth_url, exchange_code, get_valid_token
 from strava.sync import fetch_and_sync
 
-st.set_page_config(page_title="Phingness", page_icon="💍", layout="wide")
-
-st.markdown("""
-<style>
-#MainMenu, footer, header { visibility: hidden; }
-.block-container { padding-top: 1.5rem; }
-div[data-testid="stMetric"] { background: #13132a; border-radius: 12px; padding: 16px; }
-div[data-testid="stTabs"] [data-baseweb="tab"] { font-size: 13px; }
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Oura Tracker", page_icon="💍", layout="wide")
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 init_db()
@@ -166,47 +157,9 @@ rec = training_recommendation(today.get("readiness_score"), trend, debt, profile
 step_rec = step_recommendation(today.get("readiness_score"), trend, debt, profile)
 summary = weekly_summary(rows_all, profile)
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def score_color(v, hi=85, mid=70):
-    if v is None: return "#64748b"
-    if v >= hi: return "#10b981"
-    if v >= mid: return "#f59e0b"
-    return "#ef4444"
-
-def metric_tile(label, value, sub="", color="#7c3aed", icon=""):
-    return f"""
-    <div style="background:linear-gradient(135deg,#1f2937 0%,#273348 100%);
-                border-radius:16px;padding:22px 24px;border:1px solid rgba(255,255,255,0.06);
-                position:relative;overflow:hidden;height:100%">
-      <div style="font-size:10px;color:#64748b;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">{label}</div>
-      <div style="font-size:38px;font-weight:800;color:{color};line-height:1;letter-spacing:-1px">{icon}{value}</div>
-      <div style="font-size:12px;color:#64748b;margin-top:8px">{sub}</div>
-      <div style="position:absolute;right:-16px;bottom:-16px;width:72px;height:72px;
-                  border-radius:50%;background:{color};opacity:0.07"></div>
-    </div>"""
-
-# ── Header ────────────────────────────────────────────────────────────────────
-h1, h2 = st.columns([3, 1])
-with h1:
-    st.markdown(
-        f"<h1 style='font-size:32px;font-weight:800;margin:0;letter-spacing:-1px'>💍 Phingness</h1>"
-        f"<div style='color:#64748b;font-size:13px;margin-top:4px'>{today['date']} &nbsp;·&nbsp; {profile.get('label', goal_name)}</div>",
-        unsafe_allow_html=True,
-    )
-with h2:
-    sig_raw = rec.split("/")[0].strip() if "/" in rec else rec
-    sig_key = "PUSH" if "hard" in rec.lower() else "REST" if "rest" in rec.lower() else "MODERATE"
-    sig_color = {"PUSH": "#10b981", "MODERATE": "#f59e0b", "REST": "#ef4444"}[sig_key]
-    sig_emoji = {"PUSH": "🟢", "MODERATE": "🟡", "REST": "🔴"}[sig_key]
-    st.markdown(
-        f"<div style='text-align:right;padding-top:6px'>"
-        f"<span style='font-size:11px;color:#64748b;letter-spacing:.1em'>TODAY</span><br>"
-        f"<span style='font-size:18px;font-weight:700;color:{sig_color}'>{sig_emoji} {sig_raw}</span>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
-
-st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+# ── Header & metric cards ─────────────────────────────────────────────────────
+st.title("💍 Oura Data & Goals Tracker")
+st.caption(f"Goal: **{profile.get('label', goal_name)}** · {today['date']}")
 
 main_tab, training_tab = st.tabs(["📊 Daily Overview", "🏃 Race Trainer"])
 
@@ -217,24 +170,18 @@ SIGNAL_EMOJI = {"PUSH": "🟢", "MODERATE": "🟡", "REST": "🔴"}
 # TAB 1 — Daily Overview
 # ══════════════════════════════════════════════════════════════════════════════
 with main_tab:
-    t1, t2, t3, t4 = st.columns(4)
-    r_score = today.get('readiness_score')
-    s_score = today.get('sleep_score')
-    rhr_val = today.get('resting_heart_rate')
-    rhr_color = "#ef4444" if rhr_up else "#10b981"
-    hrv_color = "#10b981" if trend == "rising" else "#ef4444" if trend == "falling" else "#f59e0b"
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Readiness", f"{today.get('readiness_score', '—')}/100")
+    col2.metric("Sleep Score", f"{today.get('sleep_score', '—')}/100")
+    col3.metric(
+        "Resting HR",
+        f"{today.get('resting_heart_rate', '—')} bpm",
+        delta="elevated" if rhr_up else None,
+        delta_color="inverse",
+    )
+    col4.metric("HRV Trend", trend or "—")
 
-    with t1:
-        st.markdown(metric_tile("Readiness", f"{r_score or '—'}", "/100", score_color(r_score)), unsafe_allow_html=True)
-    with t2:
-        st.markdown(metric_tile("Sleep Score", f"{s_score or '—'}", "/100", score_color(s_score)), unsafe_allow_html=True)
-    with t3:
-        rhr_sub = "elevated ↑" if rhr_up else "normal"
-        st.markdown(metric_tile("Resting HR", f"{rhr_val or '—'}", f"bpm · {rhr_sub}", rhr_color), unsafe_allow_html=True)
-    with t4:
-        st.markdown(metric_tile("HRV Trend", trend or "—", "14-day direction", hrv_color), unsafe_allow_html=True)
-
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    st.markdown("---")
     brief_state = st.session_state.get("brief")
     brief_col, step_col = st.columns([3, 2])
 
@@ -261,7 +208,7 @@ with main_tab:
             emoji = SIGNAL_EMOJI.get(signal, "⚪")
             st.markdown(
                 f"""
-                <div style="background:#1f2937;border-radius:12px;padding:20px 24px;margin:8px 0">
+                <div style="background:#1e1e2e;border-radius:12px;padding:20px 24px;margin:8px 0">
                     <div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:.08em">TODAY'S TRAINING SIGNAL</div>
                     <div style="font-size:24px;font-weight:700;color:{color};margin-bottom:10px">{emoji} {signal}</div>
                     <div style="font-size:14px;color:#ccc;line-height:1.6">{brief_state['narrative']}</div>
@@ -274,7 +221,7 @@ with main_tab:
             rec_color = rec_color_map.get(rec, "⚪")
             st.markdown(
                 f"""
-                <div style="background:#1f2937;border-radius:12px;padding:20px 24px;margin:8px 0">
+                <div style="background:#1e1e2e;border-radius:12px;padding:20px 24px;margin:8px 0">
                     <div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:.08em">TODAY'S TRAINING (rule-based)</div>
                     <div style="font-size:22px;font-weight:700;margin-bottom:8px">{rec_color} {rec}</div>
                     <div style="font-size:13px;color:#888">Press "Generate AI Brief" for a personalized narrative from Claude.</div>
@@ -284,134 +231,75 @@ with main_tab:
             )
 
     with step_col:
-        step_lv = step_rec["level"]
-        step_clr = {"high": "#10b981", "moderate": "#f59e0b", "low": "#ef4444"}.get(step_lv, "#64748b")
+        step_color = {"high": "🟢", "moderate": "🟡", "low": "🔴"}.get(step_rec["level"], "⚪")
         today_steps = today.get("steps")
         step_progress = min(today_steps / step_rec["target"], 1.0) if today_steps else 0.0
         step_pct = int(step_progress * 100)
         step_actual_str = f"{today_steps:,}" if today_steps else "—"
-        bar_w = int(step_progress * 100)
         st.markdown(
             f"""
-            <div style="background:linear-gradient(135deg,#1f2937 0%,#273348 100%);
-                        border-radius:16px;padding:20px 24px;border:1px solid rgba(255,255,255,0.06)">
-                <div style="font-size:10px;color:#64748b;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">STEPS TODAY</div>
-                <div style="font-size:28px;font-weight:800;color:{step_clr};line-height:1">{step_actual_str}</div>
-                <div style="font-size:12px;color:#64748b;margin:6px 0 12px">of {step_rec['target']:,} target · {step_pct}%</div>
-                <div style="background:#273348;border-radius:6px;height:6px;overflow:hidden">
-                  <div style="background:{step_clr};width:{bar_w}%;height:100%;border-radius:6px;transition:width .3s"></div>
-                </div>
-                <div style="font-size:11px;color:#64748b;margin-top:8px">{step_rec['feedback']}</div>
+            <div style="background:#1e1e2e;border-radius:12px;padding:20px 24px;margin:8px 0">
+                <div style="font-size:12px;color:#aaa;margin-bottom:6px;letter-spacing:.08em">STEP TARGET</div>
+                <div style="font-size:24px;font-weight:700;margin-bottom:8px">{step_color} {step_rec['target']:,} steps</div>
+                <div style="font-size:13px;color:#888">{step_actual_str} today · {step_pct}% of target</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        st.progress(step_progress)
+        st.caption(step_rec["feedback"])
 
-    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    st.markdown("<span style='font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:.08em'>TRENDS — LAST 60 DAYS</span>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.subheader("📈 Trends (last 60 days)")
     df60 = df.tail(60)
-
-    _CHART_LAYOUT = dict(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#1a2236",
-        font=dict(color="#94a3b8", size=11),
-        margin=dict(t=16, b=0, l=0, r=0),
-        height=300,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
-                    font=dict(size=11), bgcolor="rgba(0,0,0,0)"),
-        xaxis=dict(gridcolor="#1e1e35", linecolor="#1e1e35", tickcolor="#1e1e35"),
-        yaxis=dict(gridcolor="#1e1e35", linecolor="#1e1e35", tickcolor="#1e1e35"),
-        hovermode="x unified",
-    )
-
     scores_tab, sleep_tab, heart_tab = st.tabs(["Scores", "Sleep", "Heart"])
-
-    def hex_to_rgba(h, a):
-        r, g, b = int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16)
-        return f"rgba({r},{g},{b},{a})"
 
     with scores_tab:
         fig = go.Figure()
         for col, color, name in [
             ("readiness_score", "#7c3aed", "Readiness"),
-            ("sleep_score", "#38bdf8", "Sleep"),
+            ("sleep_score", "#0ea5e9", "Sleep"),
             ("activity_score", "#10b981", "Activity"),
         ]:
-            fig.add_trace(go.Scatter(
-                x=df60["date"], y=df60[col], name=name,
-                line=dict(color=color, width=2), connectgaps=True,
-                fill="tozeroy", fillcolor=hex_to_rgba(color, 0.08),
-            ))
-        fig.update_layout(**_CHART_LAYOUT, yaxis=dict(**_CHART_LAYOUT["yaxis"], range=[0, 100]))
+            fig.add_trace(go.Scatter(x=df60["date"], y=df60[col], name=name,
+                line=dict(color=color, width=2), connectgaps=True))
+        fig.update_layout(yaxis=dict(range=[0, 100]), height=340, margin=dict(t=20))
         st.plotly_chart(fig, use_container_width=True)
 
     with sleep_tab:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=df60["date"], y=df60["total_sleep_hours"],
-            name="Sleep hours", marker_color="#38bdf8", marker_opacity=0.8,
-        ))
-        fig.add_hline(
-            y=profile["sleep_target_hours"], line_dash="dot", line_color="#f59e0b", line_width=1.5,
-            annotation_text=f"Target {profile['sleep_target_hours']}h",
-            annotation_font=dict(color="#f59e0b", size=11),
-        )
-        fig.add_trace(go.Scatter(
-            x=df60["date"], y=df60["sleep_efficiency"],
-            name="Efficiency %", line=dict(color="#a78bfa", width=2), connectgaps=True,
-            yaxis="y2",
-        ))
-        fig.update_layout(
-            **_CHART_LAYOUT,
-            yaxis=dict(**_CHART_LAYOUT["yaxis"], title="Hours"),
-            yaxis2=dict(title="Efficiency %", overlaying="y", side="right",
-                        range=[60, 100], gridcolor="rgba(0,0,0,0)",
-                        tickcolor="#1e1e35", linecolor="#1e1e35", tickfont=dict(color="#64748b")),
-        )
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Bar(x=df60["date"], y=df60["total_sleep_hours"],
+            name="Total sleep (h)", marker_color="#0ea5e9"), secondary_y=False)
+        fig.add_hline(y=profile["sleep_target_hours"], line_dash="dash",
+            line_color="#f59e0b", annotation_text=f"Target {profile['sleep_target_hours']}h")
+        fig.add_trace(go.Scatter(x=df60["date"], y=df60["sleep_efficiency"],
+            name="Efficiency (%)", line=dict(color="#a78bfa", width=2), connectgaps=True), secondary_y=True)
+        fig.update_yaxes(title_text="Hours", secondary_y=False)
+        fig.update_yaxes(title_text="Efficiency %", secondary_y=True, range=[60, 100])
+        fig.update_layout(height=340, margin=dict(t=20))
         st.plotly_chart(fig, use_container_width=True)
 
     with heart_tab:
-        hc1, hc2 = st.columns(2)
-        with hc1:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df60["date"], y=df60["hrv_balance"], name="HRV Balance",
-                line=dict(color="#7c3aed", width=2), connectgaps=True,
-                fill="tozeroy", fillcolor=hex_to_rgba("#7c3aed", 0.12),
-            ))
-            fig.update_layout(**_CHART_LAYOUT, title=dict(text="HRV Balance", font=dict(size=12, color="#94a3b8"), x=0))
-            st.plotly_chart(fig, use_container_width=True)
-        with hc2:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df60["date"], y=df60["resting_heart_rate"], name="Resting HR",
-                line=dict(color="#ef4444", width=2), connectgaps=True,
-                fill="tozeroy", fillcolor=hex_to_rgba("#ef4444", 0.12),
-            ))
-            fig.update_layout(**_CHART_LAYOUT, title=dict(text="Resting Heart Rate (bpm)", font=dict(size=12, color="#94a3b8"), x=0))
-            st.plotly_chart(fig, use_container_width=True)
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df60["date"], y=df60["hrv_balance"], name="HRV Balance",
+            line=dict(color="#7c3aed", width=2), connectgaps=True), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df60["date"], y=df60["resting_heart_rate"], name="Resting HR (bpm)",
+            line=dict(color="#ef4444", width=2), connectgaps=True), secondary_y=True)
+        fig.update_yaxes(title_text="HRV", secondary_y=False)
+        fig.update_yaxes(title_text="RHR (bpm)", secondary_y=True)
+        fig.update_layout(height=340, margin=dict(t=20))
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    st.markdown("<span style='font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:.08em'>THIS WEEK</span>", unsafe_allow_html=True)
-    wc1, wc2, wc3, wc4 = st.columns(4)
+    st.markdown("---")
+    st.subheader("📋 Weekly Summary")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Avg Readiness", f"{summary['avg_readiness']:.0f}/100" if summary["avg_readiness"] else "—")
+    c2.metric("HRV Trend", summary["hrv_trend"] or "—")
+    c3.metric("Avg Sleep", f"{summary['avg_sleep_hours']:.1f}h" if summary["avg_sleep_hours"] else "—")
     debt_val = summary["sleep_debt_hours"]
-    debt_color = "#10b981" if debt_val >= 0 else "#ef4444"
-    debt_str = f"+{debt_val:.1f}h" if debt_val >= 0 else f"{debt_val:.1f}h"
-    avg_r = summary["avg_readiness"]
-    avg_s = summary["avg_sleep_hours"]
-    with wc1:
-        st.markdown(metric_tile("Avg Readiness", f"{avg_r:.0f}" if avg_r else "—", "/100", score_color(avg_r)), unsafe_allow_html=True)
-    with wc2:
-        st.markdown(metric_tile("HRV Trend", summary["hrv_trend"] or "—", "this week", hrv_color), unsafe_allow_html=True)
-    with wc3:
-        st.markdown(metric_tile("Avg Sleep", f"{avg_s:.1f}h" if avg_s else "—", "per night", score_color(avg_s, hi=7.5, mid=6.5)), unsafe_allow_html=True)
-    with wc4:
-        st.markdown(metric_tile("Sleep vs Target", debt_str, "cumulative", debt_color), unsafe_allow_html=True)
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-    st.markdown(
-        f"<div style='background:#1f2937;border-radius:12px;padding:16px 20px;border-left:3px solid #7c3aed;font-size:13px;color:#94a3b8;line-height:1.6'>{summary['narrative']}</div>",
-        unsafe_allow_html=True,
-    )
+    c4.metric("Sleep vs Target", f"{debt_val:+.1f}h",
+        delta_color="normal" if debt_val >= 0 else "inverse")
+    st.info(summary["narrative"])
 
     with st.expander("Raw data"):
         st.dataframe(df.sort_values("date", ascending=False), use_container_width=True)
@@ -498,55 +386,29 @@ with training_tab:
 
                 WORKOUT_TYPES = ["easy run", "tempo", "intervals", "long run", "cross-train", "rest", "race"]
 
-                WTYPE_ICON = {
-                    "easy run": "🏃", "tempo": "⚡", "intervals": "🔥",
-                    "long run": "🛣️", "cross-train": "🚴", "rest": "😴", "race": "🏆",
-                }
                 for day in plan_data["days"]:
                     effort = day.get("effort", 5)
                     color = effort_color(effort)
                     dist = f"{day['distance_mi']} mi" if day.get("distance_mi") else ""
-                    wtype = day.get("workout_type", "easy run")
-                    wtype_label = wtype.replace("_", " ").title()
-                    wtype_icon = WTYPE_ICON.get(wtype, "🏃")
+                    wtype = day.get("workout_type", "").replace("_", " ").title()
                     desc = day.get("description", "")
                     day_date = day.get("date", "")
                     logged = logged_by_date.get(day_date)
-                    bar_pct = int(effort / 10 * 100)
 
                     with st.container():
-                        done_html = (
-                            f"<span style='font-size:11px;background:#10b98122;color:#10b981;"
-                            f"border-radius:20px;padding:2px 10px;margin-left:8px'>✓ logged</span>"
-                        ) if logged else ""
-                        st.markdown(f"""
-                        <div style="background:#1f2937;border-radius:14px;padding:16px 20px;
-                                    margin:6px 0;border-left:4px solid {color};
-                                    border:1px solid rgba(255,255,255,0.05);border-left:4px solid {color}">
-                          <div style="display:flex;justify-content:space-between;align-items:center">
-                            <div>
-                              <span style="font-size:16px;font-weight:700;color:#e2e8f0">{day['day']}</span>
-                              <span style="font-size:11px;color:#475569;margin-left:8px">{day_date}</span>
-                              {done_html}
-                            </div>
-                            <span style="font-size:11px;background:{color}22;color:{color};
-                                         border-radius:20px;padding:3px 12px;font-weight:600">
-                              {wtype_icon} {wtype_label}
-                            </span>
-                          </div>
-                          <div style="font-size:12px;color:#64748b;margin:8px 0 10px">{desc}</div>
-                          <div style="display:flex;align-items:center;gap:12px">
-                            {"<span style='font-size:12px;color:#94a3b8'>📏 " + dist + "</span>" if dist else ""}
-                            <div style="flex:1;background:#273348;border-radius:4px;height:4px">
-                              <div style="background:{color};width:{bar_pct}%;height:100%;border-radius:4px"></div>
-                            </div>
-                            <span style="font-size:11px;color:{color};font-weight:600">effort {effort}/10</span>
-                          </div>
-                        </div>""", unsafe_allow_html=True)
-                        if logged:
-                            ldist = f"{logged['distance_mi']} mi" if logged.get('distance_mi') else ""
-                            lpace = f"@ {logged['pace_per_mile']}/mi" if logged.get('pace_per_mile') else ""
-                            st.caption(f"Actual: {logged['type']} {ldist} {lpace} · effort {logged.get('effort','—')}/10")
+                        col_a, col_b = st.columns([5, 1])
+                        with col_a:
+                            done_badge = " ✅" if logged else ""
+                            st.markdown(
+                                f"**{day['day']}{done_badge}** &nbsp; "
+                                f"<span style='color:#888;font-size:12px'>{day_date}</span> &nbsp; "
+                                f"<span style='color:#aaa'>{wtype}</span>"
+                                + (f" &nbsp; · &nbsp; <span style='color:#aaa'>{dist}</span>" if dist else ""),
+                                unsafe_allow_html=True,
+                            )
+                        with col_b:
+                            st.markdown(f"<div style='color:{color};font-weight:700;text-align:right'>Effort {effort}/10</div>", unsafe_allow_html=True)
+                        st.caption(desc)
 
                         if logged:
                             lc1, lc2 = st.columns([6, 1])
@@ -754,7 +616,7 @@ with training_tab:
                 pace = f"@ {w['pace_per_mile']}/mi" if w.get("pace_per_mile") else ""
                 st.markdown(
                     f"""
-                    <div style="background:#1f2937;border-radius:10px;padding:12px 16px;margin:4px 0;border-left:3px solid {c}">
+                    <div style="background:#1e1e2e;border-radius:10px;padding:12px 16px;margin:4px 0;border-left:3px solid {c}">
                         <b style="color:#fff">{w['date']}</b>
                         <span style="color:#aaa;margin-left:10px">{w['type']}</span>
                         <span style="color:#ccc;margin-left:10px">{dist} {pace}</span>
@@ -803,7 +665,7 @@ with training_tab:
             for r in results:
                 st.markdown(
                     f"""
-                    <div style="background:#1f2937;border-radius:10px;padding:14px 18px;margin:6px 0;border-left:4px solid #7c3aed">
+                    <div style="background:#1e1e2e;border-radius:10px;padding:14px 18px;margin:6px 0;border-left:4px solid #7c3aed">
                         <b style="color:#fff;font-size:15px">{r['race_name']}</b>
                         <span style="color:#888;font-size:12px;margin-left:10px">{r['date']}</span>
                         <div style="margin-top:6px">
@@ -852,7 +714,7 @@ with training_tab:
                 weeks = weeks_until(r["date"])
                 st.markdown(
                     f"""
-                    <div style="background:#1f2937;border-radius:10px;padding:14px 18px;margin:6px 0">
+                    <div style="background:#1e1e2e;border-radius:10px;padding:14px 18px;margin:6px 0">
                         <b style="color:#fff">{r['name']}</b>
                         <span style="color:#888;margin-left:10px">{r['date']}</span>
                         <span style="color:#7c3aed;margin-left:10px">{r['distance_mi']} mi</span>

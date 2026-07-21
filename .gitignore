@@ -2,6 +2,5 @@
 oura_data.db
 __pycache__/
 *.pyc
-.streamlit/*
-!.streamlit/config.toml
+.streamlit/
 .claude/settings.local.json
