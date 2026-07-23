@@ -32,7 +32,8 @@ def get_conn():
     if _is_postgres():
         import psycopg2
         import psycopg2.extras
-        conn = psycopg2.connect(_get_db_url())
+        url = _get_db_url().split("?")[0]  # strip query params psycopg2 can't handle
+        conn = psycopg2.connect(url)
         conn.autocommit = False
         try:
             yield conn

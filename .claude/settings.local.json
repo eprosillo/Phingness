@@ -38,7 +38,8 @@
       "Bash(which claude *)",
       "Bash(git commit -m 'Fix weekly plan rendering: use st.caption for descriptions to avoid HTML injection *)",
       "Bash(git pull *)",
-      "Bash(python3 -m pip install psycopg2-binary)"
+      "Bash(python3 -m pip install psycopg2-binary)",
+      "Bash(git commit -m 'Strip pgbouncer query param from DATABASE_URL before psycopg2 connect *)"
     ]
   }
 }
