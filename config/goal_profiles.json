@@ -14,7 +14,7 @@
     "hrv_trend_window_days": 10,
     "rhr_alert_increase": 4,
     "sleep_target_hours": 8,
-    "step_targets": { "high": 8000, "moderate": 6000, "low": 4000 },
+    "step_targets": { "high": 12000, "moderate": 9000, "low": 6000 },
     "priorities": ["volume_progression", "recovery", "consistency"]
   },
   "performance": {
@@ -23,7 +23,7 @@
     "hrv_trend_window_days": 7,
     "rhr_alert_increase": 3,
     "sleep_target_hours": 8,
-    "step_targets": { "high": 7000, "moderate": 5000, "low": 3000 },
+    "step_targets": { "high": 12000, "moderate": 9000, "low": 5000 },
     "priorities": ["peak_readiness", "intensity_management", "recovery"]
   },
   "recovery": {
