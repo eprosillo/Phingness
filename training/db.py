@@ -1,42 +1,36 @@
 """
 Training database — races, workouts, training plans, race results.
-Uses the same SQLite file as oura/db.py.
 """
 from __future__ import annotations
+import sys
 from pathlib import Path
-import sqlite3
-
-DB_PATH = Path(__file__).parent.parent / "oura_data.db"
-
-
-def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from db import get_conn, fetchall, fetchone, ph
 
 
 def init_training_db():
-    with _connect() as conn:
-        conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS app_settings (
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             )
         """)
-        conn.execute("""
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS races (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                id          SERIAL PRIMARY KEY,
                 name        TEXT NOT NULL,
                 date        TEXT NOT NULL,
                 distance_mi REAL NOT NULL,
                 goal_pace   TEXT,
                 notes       TEXT,
-                created_at  TEXT DEFAULT (date('now'))
+                created_at  TEXT DEFAULT CURRENT_DATE
             )
         """)
-        conn.execute("""
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS workout_logs (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                id              SERIAL PRIMARY KEY,
                 date            TEXT NOT NULL,
                 type            TEXT NOT NULL DEFAULT 'run',
                 distance_mi     REAL,
@@ -45,70 +39,93 @@ def init_training_db():
                 effort          INTEGER,
                 notes           TEXT,
                 source          TEXT DEFAULT 'manual',
-                created_at      TEXT DEFAULT (datetime('now'))
+                created_at      TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        conn.execute("""
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS training_plans (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                id          SERIAL PRIMARY KEY,
                 week_start  TEXT NOT NULL UNIQUE,
                 race_id     INTEGER,
                 plan_json   TEXT NOT NULL,
-                created_at  TEXT DEFAULT (datetime('now'))
+                created_at  TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        conn.execute("""
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS race_results (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                race_id     INTEGER,
-                race_name   TEXT NOT NULL,
-                date        TEXT NOT NULL,
-                distance_mi REAL NOT NULL,
-                finish_time TEXT NOT NULL,
+                id            SERIAL PRIMARY KEY,
+                race_id       INTEGER,
+                race_name     TEXT NOT NULL,
+                date          TEXT NOT NULL,
+                distance_mi   REAL NOT NULL,
+                finish_time   TEXT NOT NULL,
                 pace_per_mile TEXT,
-                place       TEXT,
-                notes       TEXT,
-                created_at  TEXT DEFAULT (datetime('now'))
+                place         TEXT,
+                notes         TEXT,
+                created_at    TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+
+# ── Settings ───────────────────────────────────────────────────────────────────
+
+def get_setting(key: str, default: str = None) -> str | None:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT value FROM app_settings WHERE key = {ph()}", (key,))
+        row = cur.fetchone()
+    return row[0] if row else default
+
+
+def set_setting(key: str, value: str):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
+            INSERT INTO app_settings (key, value) VALUES ({ph()}, {ph()})
+            ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value
+        """, (key, value))
 
 
 # ── Races ──────────────────────────────────────────────────────────────────────
 
 def upsert_race(name: str, date: str, distance_mi: float, goal_pace: str = None, notes: str = None) -> int:
-    with _connect() as conn:
-        cur = conn.execute(
-            "SELECT id FROM races WHERE name = ? AND date = ?", (name, date)
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT id FROM races WHERE name = {ph()} AND date = {ph()}", (name, date)
         )
         row = cur.fetchone()
         if row:
-            conn.execute(
-                "UPDATE races SET distance_mi=?, goal_pace=?, notes=? WHERE id=?",
-                (distance_mi, goal_pace, notes, row["id"]),
+            cur.execute(
+                f"UPDATE races SET distance_mi={ph()}, goal_pace={ph()}, notes={ph()} WHERE id={ph()}",
+                (distance_mi, goal_pace, notes, row[0]),
             )
-            return row["id"]
-        cur = conn.execute(
-            "INSERT INTO races (name, date, distance_mi, goal_pace, notes) VALUES (?,?,?,?,?)",
+            return row[0]
+        cur.execute(
+            f"INSERT INTO races (name, date, distance_mi, goal_pace, notes) VALUES ({ph()},{ph()},{ph()},{ph()},{ph()}) RETURNING id",
             (name, date, distance_mi, goal_pace, notes),
         )
-        return cur.lastrowid
+        return cur.fetchone()[0]
 
 
 def get_races() -> list[dict]:
-    with _connect() as conn:
-        rows = conn.execute("SELECT * FROM races ORDER BY date ASC").fetchall()
-    return [dict(r) for r in rows]
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM races ORDER BY date ASC")
+        return fetchall(cur)
 
 
 def get_race(race_id: int) -> dict | None:
-    with _connect() as conn:
-        row = conn.execute("SELECT * FROM races WHERE id=?", (race_id,)).fetchone()
-    return dict(row) if row else None
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT * FROM races WHERE id={ph()}", (race_id,))
+        return fetchone(cur)
 
 
 def delete_race(race_id: int):
-    with _connect() as conn:
-        conn.execute("DELETE FROM races WHERE id=?", (race_id,))
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM races WHERE id={ph()}", (race_id,))
 
 
 # ── Workout logs ───────────────────────────────────────────────────────────────
@@ -123,34 +140,39 @@ def log_workout(
     notes: str = None,
     source: str = "manual",
 ) -> int:
-    with _connect() as conn:
-        cur = conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             INSERT INTO workout_logs
                 (date, type, distance_mi, duration_min, pace_per_mile, effort, notes, source)
-            VALUES (?,?,?,?,?,?,?,?)
+            VALUES ({ph()},{ph()},{ph()},{ph()},{ph()},{ph()},{ph()},{ph()})
+            RETURNING id
         """, (date, workout_type, distance_mi, duration_min, pace_per_mile, effort, notes, source))
-        return cur.lastrowid
+        row = cur.fetchone()
+        return row[0] if row else None
 
 
 def get_workouts(days: int = 60) -> list[dict]:
-    with _connect() as conn:
-        rows = conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             SELECT * FROM workout_logs
             ORDER BY date DESC
-            LIMIT ?
-        """, (days,)).fetchall()
-    return [dict(r) for r in reversed(rows)]
+            LIMIT {ph()}
+        """, (days,))
+        return list(reversed(fetchall(cur)))
 
 
 def get_strava_workouts(days: int = 60) -> list[dict]:
-    with _connect() as conn:
-        rows = conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             SELECT * FROM workout_logs
             WHERE source = 'strava'
             ORDER BY date DESC
-            LIMIT ?
-        """, (days,)).fetchall()
-    return [dict(r) for r in rows]
+            LIMIT {ph()}
+        """, (days,))
+        return fetchall(cur)
 
 
 def update_workout(
@@ -162,39 +184,42 @@ def update_workout(
     effort: int = None,
     notes: str = None,
 ):
-    with _connect() as conn:
-        conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             UPDATE workout_logs
-            SET type=?, distance_mi=?, duration_min=?, pace_per_mile=?, effort=?, notes=?
-            WHERE id=?
+            SET type={ph()}, distance_mi={ph()}, duration_min={ph()},
+                pace_per_mile={ph()}, effort={ph()}, notes={ph()}
+            WHERE id={ph()}
         """, (workout_type, distance_mi, duration_min, pace_per_mile, effort, notes, workout_id))
 
 
 def delete_workout(workout_id: int):
-    with _connect() as conn:
-        conn.execute("DELETE FROM workout_logs WHERE id=?", (workout_id,))
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM workout_logs WHERE id={ph()}", (workout_id,))
 
 
 # ── Training plans ─────────────────────────────────────────────────────────────
 
 def save_training_plan(week_start: str, plan_json: str, race_id: int = None):
-    with _connect() as conn:
-        conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             INSERT INTO training_plans (week_start, race_id, plan_json)
-            VALUES (?,?,?)
+            VALUES ({ph()},{ph()},{ph()})
             ON CONFLICT(week_start) DO UPDATE SET
-                plan_json = excluded.plan_json,
-                race_id   = excluded.race_id,
-                created_at = datetime('now')
+                plan_json  = EXCLUDED.plan_json,
+                race_id    = EXCLUDED.race_id,
+                created_at = CURRENT_TIMESTAMP
         """, (week_start, race_id, plan_json))
 
 
 def get_training_plan(week_start: str) -> dict | None:
-    with _connect() as conn:
-        row = conn.execute(
-            "SELECT * FROM training_plans WHERE week_start=?", (week_start,)
-        ).fetchone()
-    return dict(row) if row else None
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"SELECT * FROM training_plans WHERE week_start={ph()}", (week_start,))
+        return fetchone(cur)
 
 
 # ── Race results ───────────────────────────────────────────────────────────────
@@ -209,40 +234,26 @@ def log_race_result(
     notes: str = None,
     race_id: int = None,
 ) -> int:
-    with _connect() as conn:
-        cur = conn.execute("""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             INSERT INTO race_results
                 (race_id, race_name, date, distance_mi, finish_time, pace_per_mile, place, notes)
-            VALUES (?,?,?,?,?,?,?,?)
+            VALUES ({ph()},{ph()},{ph()},{ph()},{ph()},{ph()},{ph()},{ph()})
+            RETURNING id
         """, (race_id, race_name, date, distance_mi, finish_time, pace_per_mile, place, notes))
-        return cur.lastrowid
+        row = cur.fetchone()
+        return row[0] if row else None
 
 
 def get_race_results() -> list[dict]:
-    with _connect() as conn:
-        rows = conn.execute(
-            "SELECT * FROM race_results ORDER BY date DESC"
-        ).fetchall()
-    return [dict(r) for r in rows]
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM race_results ORDER BY date DESC")
+        return fetchall(cur)
 
 
 def delete_race_result(result_id: int):
-    with _connect() as conn:
-        conn.execute("DELETE FROM race_results WHERE id=?", (result_id,))
-
-
-# ── App settings ───────────────────────────────────────────────────────────────
-
-def get_setting(key: str, default: str = None) -> str | None:
-    with _connect() as conn:
-        row = conn.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
-    return row["value"] if row else default
-
-
-def set_setting(key: str, value: str):
-    with _connect() as conn:
-        conn.execute(
-            "INSERT INTO app_settings (key, value) VALUES (?,?) "
-            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            (key, value),
-        )
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"DELETE FROM race_results WHERE id={ph()}", (result_id,))

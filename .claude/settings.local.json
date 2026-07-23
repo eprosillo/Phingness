@@ -36,7 +36,9 @@
       "Bash(git commit -m 'Fix HTML injection in weekly plan: escape Claude descriptions *)",
       "Bash(claude mcp *)",
       "Bash(which claude *)",
-      "Bash(git commit -m 'Fix weekly plan rendering: use st.caption for descriptions to avoid HTML injection *)"
+      "Bash(git commit -m 'Fix weekly plan rendering: use st.caption for descriptions to avoid HTML injection *)",
+      "Bash(git pull *)",
+      "Bash(python3 -m pip install psycopg2-binary)"
     ]
   }
 }
