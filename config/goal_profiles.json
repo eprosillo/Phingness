@@ -10,7 +10,7 @@
   },
   "endurance": {
     "label": "Endurance",
-    "readiness_thresholds": { "high": 75, "moderate": 55 },
+    "readiness_thresholds": { "high": 65, "moderate": 45 },
     "hrv_trend_window_days": 10,
     "rhr_alert_increase": 4,
     "sleep_target_hours": 8,
@@ -19,7 +19,7 @@
   },
   "performance": {
     "label": "Performance",
-    "readiness_thresholds": { "high": 85, "moderate": 65 },
+    "readiness_thresholds": { "high": 70, "moderate": 50 },
     "hrv_trend_window_days": 7,
     "rhr_alert_increase": 3,
     "sleep_target_hours": 8,
