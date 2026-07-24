@@ -41,7 +41,8 @@
       "Bash(python3 -m pip install psycopg2-binary)",
       "Bash(git commit -m 'Strip pgbouncer query param from DATABASE_URL before psycopg2 connect *)",
       "Bash(git commit -m 'Increase step targets for Endurance and Performance goals *)",
-      "Bash(git commit -m 'Lower readiness thresholds for active athlete: more days hit high signal *)"
+      "Bash(git commit -m 'Lower readiness thresholds for active athlete: more days hit high signal *)",
+      "Bash(git commit -m 'Add PWA icon, manifest, and theme config with lightning bolt *)"
     ]
   }
 }

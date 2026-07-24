@@ -37,7 +37,13 @@ from training.planner import generate_weekly_plan, weeks_until
 from strava.auth import get_auth_url, exchange_code, get_valid_token
 from strava.sync import fetch_and_sync
 
-st.set_page_config(page_title="Phingness", page_icon="💪", layout="wide")
+st.set_page_config(page_title="Phingness", page_icon="⚡", layout="wide")
+
+st.markdown("""
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#1D4ED8">
+    <link rel="apple-touch-icon" href="/static/icon.svg">
+""", unsafe_allow_html=True)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 init_db()
